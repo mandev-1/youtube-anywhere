@@ -18,6 +18,14 @@ Přesouvá **původní** YouTube video do nativního Picture-in-Picture okna, kt
 3. Video se zobrazí v plovoucím PiP okně; přepni na jakýkoliv web.
 4. Dalším kliknutím na ikonu ho můžeš vypnout; funguje i zavírací tlačítko v PiP.
 
+### Automaticky při přepnutí záložky
+
+Když na YouTube hraje video a přepneš na jinou záložku, video se samo otevře v PiP. Po návratu na YouTube kartu se PiP zase zavře. PiP zapnuté ručně ikonou nebo zkratkou zůstane otevřené.
+
+- Funguje v novějším Chromu (přibližně 134+), který podporuje automatické PiP přes Media Session API. Ve starším zůstává jen ruční ovládání.
+- Chrome se může poprvé zeptat, jestli automatický obraz v obraze pro YouTube povolit. Nastavení najdeš v *Nastavení stránek → Další oprávnění → Automatický obraz v obraze*.
+- Video musí hrát se zvukem. Aby se PiP samo zapínalo, je potřeba YouTube karty otevřené před instalací nebo aktualizací rozšíření jednou obnovit.
+
 Zkusit lze i kliknutí z jiné stránky – rozšíření vyhledá otevřený YouTube tab. Některé verze Chromu ale vyžadují zahájení PiP přímo z YouTube karty kvůli ochraně uživatelského gesta.
 
 ## Umístění vlevo dole
@@ -29,7 +37,7 @@ Rozšíření se pokusí okno umístit **vlevo dole v rámci aktuálního okna C
 - Jde o samostatné nativní okno PiP, **nikoliv DOM overlay uvnitř každé stránky**. To je záměrně: přesunutí jediného přehrávaného videa mezi stránkami by jinak nebylo možné bez složitého streamování nebo duplicitního přehrávače.
 - Na stránkách `chrome://`, Chrome Web Store a podobných chráněných webech nelze injektovat skripty, ale **nativní PiP okno nad nimi vidět je**.
 - Zdrojová YouTube karta musí zůstat otevřená. Když ji zavřeš nebo na ní přejdeš jinam, PiP se ukončí.
-- Automatické spuštění bez jakékoliv interakce není zaručené; Chrome PiP chrání požadavkem uživatelského gesta.
+- Automatické spuštění mimo přepnutí záložky není možné; Chrome PiP jinak chrání požadavkem uživatelského gesta.
 
 ## Struktura
 
@@ -38,6 +46,7 @@ youtube-mini-left/
 ├── manifest.json       # MV3 manifest + oprávnění + klávesová zkratka
 ├── background.js       # toolbar, výběr YT záložky, pokus o pozici PiP
 ├── pip.js              # skutečný YouTube video element -> PiP
+├── autopip.js          # automatické PiP při přepnutí záložky
 ├── assets/             # ikony
 └── README.md
 ```

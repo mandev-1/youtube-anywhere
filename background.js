@@ -15,6 +15,27 @@ chrome.action.onClicked.addListener((clickedTab) => {
   void toggleFromAction(clickedTab);
 });
 
+// autopip.js hlásí každé otevření/zavření PiP (i automatické a přes křížek).
+chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type !== "pip-state") return;
+  void (message.state === "opened"
+    ? showStatus("ON", "YouTube Mini běží. Kliknutím ho vypneš.")
+    : showStatus("OFF", "YouTube Mini vypnuto."));
+});
+
+// Návrat na YouTube kartu: automaticky otevřené PiP zavřít. Hlídá to service
+// worker, protože stránka v PiP nemusí dostat visibilitychange a PiP mohl
+// otevřít i Chrome/YouTube samy, mimo autopip.js.
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  void closeAutoPip(tabId);
+});
+
+chrome.windows.onFocusChanged.addListener(async (windowId) => {
+  if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+  const [tab] = await chrome.tabs.query({ active: true, windowId }).catch(() => []);
+  if (tab?.id != null) void closeAutoPip(tab.id, tab.url);
+});
+
 chrome.windows.onCreated.addListener((newWindow) => {
   if (!placement || Date.now() > placement.expiresAt) return;
   if (!newWindow.alwaysOnTop || newWindow.id == null) return;
@@ -73,6 +94,26 @@ async function toggleFromAction(clickedTab) {
     placement = null;
     console.error("YouTube Mini:", error);
     await showStatus("!", "PiP se nepodařilo spustit. Otevři video na YouTube a klikni znovu.");
+  }
+}
+
+async function closeAutoPip(tabId, knownUrl) {
+  try {
+    const url = knownUrl ?? (await chrome.tabs.get(tabId)).url;
+    if (!YOUTUBE_URL.test(url || "")) return;
+
+    // Běží ve stejném izolovaném světě jako pip.js, takže vidí jeho příznak
+    // ručně zapnutého PiP. Ruční PiP necháváme otevřené.
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!document.pictureInPictureElement || globalThis.__ytMiniManualPip) return;
+        return document.exitPictureInPicture().catch(() => {});
+      }
+    });
+  } catch (error) {
+    // Karta se načítá, byla zahozena nebo zavřena – není co zavírat.
+    console.debug("YouTube Mini: zavření PiP po návratu se nepovedlo:", error);
   }
 }
 

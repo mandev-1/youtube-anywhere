@@ -10,6 +10,13 @@
     "https://www.youtube.com/*",
     "https://m.youtube.com/*"
   ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
+      "js": ["autopip.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "background": {
     "service_worker": "background.js"
   },

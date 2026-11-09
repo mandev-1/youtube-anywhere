@@ -7,6 +7,7 @@
     }
 
     if (document.pictureInPictureElement) {
+      globalThis.__ytMiniManualPip = false;
       await document.exitPictureInPicture();
       return { status: "closed" };
     }
@@ -25,6 +26,11 @@
     }
 
     await video.requestPictureInPicture();
+    // Ručně zapnuté PiP se po návratu na kartu nezavírá (viz closeAutoPip).
+    globalThis.__ytMiniManualPip = true;
+    video.addEventListener("leavepictureinpicture", () => {
+      globalThis.__ytMiniManualPip = false;
+    }, { once: true });
     return { status: "opened" };
   } catch (error) {
     return {
