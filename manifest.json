@@ -3,16 +3,36 @@
   "name": "YouTube Mini – vlevo dole",
   "short_name": "YouTube Mini",
   "version": "1.0.0",
-  "description": "Přepne aktuálně přehrávané YouTube video do Picture-in-Picture nad všechny stránky.",
+  "description": "Přepne aktuálně přehrávané video z YouTube, Kicku nebo Instagramu do Picture-in-Picture nad všechny stránky.",
   "minimum_chrome_version": "116",
   "permissions": ["activeTab", "scripting"],
   "host_permissions": [
     "https://www.youtube.com/*",
-    "https://m.youtube.com/*"
+    "https://m.youtube.com/*",
+    "https://kick.com/*",
+    "https://www.kick.com/*",
+    "https://www.instagram.com/*",
+    "https://instagram.com/*"
   ],
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
+      "matches": [
+        "https://www.instagram.com/*",
+        "https://instagram.com/*"
+      ],
+      "js": ["instagram-fix.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://m.youtube.com/*",
+        "https://kick.com/*",
+        "https://www.kick.com/*",
+        "https://www.instagram.com/*",
+        "https://instagram.com/*"
+      ],
       "js": ["autopip.js"],
       "run_at": "document_idle"
     }
@@ -34,6 +54,20 @@
         "mac": "Alt+Shift+P"
       },
       "description": "Zapnout nebo vypnout YouTube Mini"
+    },
+    "next_video": {
+      "suggested_key": {
+        "default": "Alt+Shift+Down",
+        "mac": "Alt+Shift+Down"
+      },
+      "description": "Přejít na další reel / video"
+    },
+    "prev_video": {
+      "suggested_key": {
+        "default": "Alt+Shift+Up",
+        "mac": "Alt+Shift+Up"
+      },
+      "description": "Přejít na předchozí reel / video"
     }
   },
   "icons": {

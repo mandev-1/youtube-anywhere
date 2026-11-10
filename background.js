@@ -1,31 +1,58 @@
 // Manifest V3 service worker.
-// Jeden skutečný YouTube <video> -> nativní Picture-in-Picture.
+// Jeden skutečný <video> z YouTube, Kicku nebo Instagramu -> nativní Picture-in-Picture.
 // Žádné kopírování streamu ani druhé audio v jiné záložce.
 
-const YOUTUBE_URL = /^https:\/\/(?:www\.|m\.)youtube\.com\//i;
+// Podporované weby: musí odpovídat host_permissions a content_scripts v manifestu.
+const VIDEO_SITE_PATTERNS = [
+  "https://www.youtube.com/*",
+  "https://m.youtube.com/*",
+  "https://kick.com/*",
+  "https://www.kick.com/*",
+  "https://www.instagram.com/*",
+  "https://instagram.com/*"
+];
+const VIDEO_SITE_URL = /^https:\/\/(?:(?:www\.|m\.)youtube\.com|(?:www\.)?kick\.com|(?:www\.)?instagram\.com)\//i;
 const PLACEMENT_MARGIN = 16;
 const PIP_SIZE = { width: 360, height: 220 };
 
 // Je-li PiP okno dostupné přes chrome.windows, zkusíme jej posunout vlevo dolů.
-// Standardní video PiP není na všech OS/verzích Chromu v tomto API vidět.
 let placement = null;
+let activePipTabId = null;
 
 chrome.action.onClicked.addListener((clickedTab) => {
   // Bez await v handleru – Chrome může předat uživatelské gesto do executeScript.
   void toggleFromAction(clickedTab);
 });
 
-// autopip.js hlásí každé otevření/zavření PiP (i automatické a přes křížek).
-chrome.runtime.onMessage.addListener((message) => {
-  if (message?.type !== "pip-state") return;
-  void (message.state === "opened"
-    ? showStatus("ON", "YouTube Mini běží. Kliknutím ho vypneš.")
-    : showStatus("OFF", "YouTube Mini vypnuto."));
+chrome.commands.onCommand.addListener((command) => {
+  if (command === "next_video" || command === "prev_video") {
+    void handleNavigationCommand(command === "next_video" ? 1 : -1);
+  }
 });
 
-// Návrat na YouTube kartu: automaticky otevřené PiP zavřít. Hlídá to service
-// worker, protože stránka v PiP nemusí dostat visibilitychange a PiP mohl
-// otevřít i Chrome/YouTube samy, mimo autopip.js.
+// autopip.js hlásí každé otevření/zavření PiP (i automatické a přes křížek).
+chrome.runtime.onMessage.addListener((message, sender) => {
+  if (message?.type !== "pip-state") return;
+  if (message.state === "opened") {
+    if (sender?.tab?.id != null) {
+      activePipTabId = sender.tab.id;
+    }
+    void showStatus("ON", "YouTube Mini běží. Kliknutím ho vypneš.");
+  } else {
+    if (sender?.tab?.id != null && sender.tab.id === activePipTabId) {
+      activePipTabId = null;
+    }
+    void showStatus("OFF", "YouTube Mini vypnuto.");
+  }
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (tabId === activePipTabId) {
+    activePipTabId = null;
+  }
+});
+
+// Návrat na kartu s videem: automaticky otevřené PiP zavřít.
 chrome.tabs.onActivated.addListener(({ tabId }) => {
   void closeAutoPip(tabId);
 });
@@ -44,17 +71,54 @@ chrome.windows.onCreated.addListener((newWindow) => {
   placement = null;
 });
 
+async function handleNavigationCommand(direction) {
+  try {
+    let targetTabId = activePipTabId;
+    if (targetTabId != null) {
+      const tab = await chrome.tabs.get(targetTabId).catch(() => null);
+      if (!tab || !VIDEO_SITE_URL.test(tab.url || "")) {
+        targetTabId = null;
+      }
+    }
+
+    if (targetTabId == null) {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => []);
+      if (activeTab && VIDEO_SITE_URL.test(activeTab.url || "")) {
+        targetTabId = activeTab.id;
+      }
+    }
+
+    if (targetTabId == null) {
+      const candidates = await chrome.tabs.query({ url: VIDEO_SITE_PATTERNS });
+      candidates.sort((a, b) =>
+        Number(Boolean(b.audible)) - Number(Boolean(a.audible)) ||
+        (b.lastAccessed || 0) - (a.lastAccessed || 0)
+      );
+      targetTabId = candidates[0]?.id ?? null;
+    }
+
+    if (targetTabId != null) {
+      await chrome.tabs.sendMessage(targetTabId, {
+        type: "navigate-reel",
+        direction
+      }).catch(() => {});
+    }
+  } catch (error) {
+    console.debug("YouTube Mini: navigace na reel se nezdařila:", error);
+  }
+}
+
 async function toggleFromAction(clickedTab) {
   try {
-    let target = clickedTab && YOUTUBE_URL.test(clickedTab.url || "")
+    let target = clickedTab && VIDEO_SITE_URL.test(clickedTab.url || "")
       ? clickedTab
       : null;
 
-    // Kliknutí na ikonu může být i z jiného webu: vyber přehrávající YT tab.
+    // Kliknutí na ikonu může být i z jiného webu: vyber kartu s videem.
     // Nejdřív preferuj záložku, která vydává zvuk, jinak poslední navštívenou.
     if (!target) {
       const candidates = await chrome.tabs.query({
-        url: ["https://www.youtube.com/*", "https://m.youtube.com/*"]
+        url: VIDEO_SITE_PATTERNS
       });
       candidates.sort((a, b) =>
         Number(Boolean(b.audible)) - Number(Boolean(a.audible)) ||
@@ -64,8 +128,17 @@ async function toggleFromAction(clickedTab) {
     }
 
     if (!target?.id) {
-      await showStatus("YT?", "Otevři na YouTube video a spusť přehrávání.");
+      await showStatus("?", "Otevři video na YouTube, Kicku nebo Instagramu a spusť přehrávání.");
       return;
+    }
+
+    // Pokud jde o Instagram, pojistíme injektování fixu pro běh na pozadí do MAIN worldu
+    if (/instagram\.com/i.test(target.url || "")) {
+      await chrome.scripting.executeScript({
+        target: { tabId: target.id },
+        files: ["instagram-fix.js"],
+        world: "MAIN"
+      }).catch(() => {});
     }
 
     // Placement začíná PŘED otevřením PiP: onCreated může přijít ihned.
@@ -82,25 +155,27 @@ async function toggleFromAction(clickedTab) {
     const result = executions?.[0]?.result;
 
     if (result?.status === "opened") {
+      activePipTabId = target.id;
       await showStatus("ON", "YouTube Mini běží. Kliknutím ho vypneš.");
     } else if (result?.status === "closed") {
       placement = null;
+      if (activePipTabId === target.id) activePipTabId = null;
       await showStatus("OFF", "YouTube Mini vypnuto.");
     } else {
       placement = null;
-      await showStatus("!", result?.message || "Nepodařilo se zapnout PiP. Zkus kliknout přímo na kartě YouTube.");
+      await showStatus("!", result?.message || "Nepodařilo se zapnout PiP. Zkus kliknout přímo na kartě s videem.");
     }
   } catch (error) {
     placement = null;
     console.error("YouTube Mini:", error);
-    await showStatus("!", "PiP se nepodařilo spustit. Otevři video na YouTube a klikni znovu.");
+    await showStatus("!", "PiP se nepodařilo spustit. Otevři video na YouTube, Kicku nebo Instagramu a klikni znovu.");
   }
 }
 
 async function closeAutoPip(tabId, knownUrl) {
   try {
     const url = knownUrl ?? (await chrome.tabs.get(tabId)).url;
-    if (!YOUTUBE_URL.test(url || "")) return;
+    if (!VIDEO_SITE_URL.test(url || "")) return;
 
     // Běží ve stejném izolovaném světě jako pip.js, takže vidí jeho příznak
     // ručně zapnutého PiP. Ruční PiP necháváme otevřené.
