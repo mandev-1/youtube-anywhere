@@ -1,6 +1,6 @@
 # .garden-files
 
-Tuhle složku založil Dependency Garden. Jsou v ní poznámky ke změnám v projektu: Dependency Garden z nich předvyplní zprávu commitu a při vydání z nich složí patch notes. Píše je hlavně coding agent, ale může i člověk. Soubor spravuje Dependency Garden (verze konvence 2) a při aktualizaci ho přepíše.
+Tuhle složku založil Dependency Garden. Jsou v ní poznámky ke změnám v projektu: Dependency Garden z nich předvyplní zprávu commitu a při vydání z nich složí patch notes. Píše je hlavně coding agent, ale může i člověk. Soubor spravuje Dependency Garden (verze konvence 3) a při aktualizaci ho přepíše.
 
 ## Jak to funguje
 
@@ -51,6 +51,15 @@ Hlavička popisuje příští commit: u nové poznámky celou změnu, u upraven�
 - Oprava chyby, která už vyšla, má nadpis `### Opraveno: …`, odebraná věc `### Odebráno: …`.
 - Interní změna, kterou uživatel nepozná (refactor, testy, údržba), tělo nemá. Stačí hlavička.
 - Technické podrobnosti pro vývojáře (typy, soubory, proč právě takhle) patří na konec pod řádek `<!-- tech -->`. Jsou volitelné.
+
+### Obrázky z handoffů
+
+Když změna vychází z handoffu (návrh, mockup nebo snímek ve složce `.handoffs/`), přidej do těla poznámky obrázek, ať je v patch notes vidět, podle čeho změna vznikla:
+
+- Samostatný řádek `![popisek](.handoffs/nazev-handoffu/obrazek.png)` pod odrážkami, před `<!-- tech -->`. Cesta je od složky projektu, popisek je krátká věta o tom, co obrázek ukazuje.
+- Jen obrázky, které v projektu opravdu jsou a patří do repozitáře (png, jpg, jpeg, gif, webp, heic, tiff). Nic nekopíruj, nepřesouvej ani nepřejmenovávej a neodkazuj na soubory mimo projekt ani na web.
+- Nejvýš tři obrázky na změnu: ten, který změnu ukazuje nejlíp. Když handoff obrázek nemá, řádek nepřidávej.
+- Vydání řádek přenese do patch notes a záložka Changelog v Dependency Garden ho ukáže jako obrázek přes šířku textu s popiskem.
 
 ## Obrázky (`assets/`)
 

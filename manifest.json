@@ -3,7 +3,7 @@
   "name": "YouTube Mini – vlevo dole",
   "short_name": "YouTube Mini",
   "version": "1.0.0",
-  "description": "Přepne aktuálně přehrávané video z YouTube, Kicku nebo Instagramu do Picture-in-Picture nad všechny stránky.",
+  "description": "Přepne aktuálně přehrávané video z YouTube, Kicku, Twitche nebo Instagramu do Picture-in-Picture nad všechny stránky.",
   "minimum_chrome_version": "116",
   "permissions": ["activeTab", "scripting"],
   "host_permissions": [
@@ -11,6 +11,9 @@
     "https://m.youtube.com/*",
     "https://kick.com/*",
     "https://www.kick.com/*",
+    "https://www.twitch.tv/*",
+    "https://m.twitch.tv/*",
+    "https://twitch.tv/*",
     "https://www.instagram.com/*",
     "https://instagram.com/*"
   ],
@@ -30,10 +33,21 @@
         "https://m.youtube.com/*",
         "https://kick.com/*",
         "https://www.kick.com/*",
+        "https://www.twitch.tv/*",
+        "https://m.twitch.tv/*",
+        "https://twitch.tv/*",
         "https://www.instagram.com/*",
         "https://instagram.com/*"
       ],
-      "js": ["autopip.js"],
+      "js": ["autopip.js", "media-controls.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://kick.com/*",
+        "https://www.kick.com/*"
+      ],
+      "js": ["kick-vod.js"],
       "run_at": "document_idle"
     }
   ],
@@ -68,6 +82,15 @@
         "mac": "Alt+Shift+Up"
       },
       "description": "Přejít na předchozí reel / video"
+    },
+    "play_pause": {
+      "description": "Pozastavit / pustit video (i v PiP)"
+    },
+    "seek_backward": {
+      "description": "Přetočit o 10 s zpět (když to kanál dovoluje)"
+    },
+    "seek_forward": {
+      "description": "Přetočit o 10 s dopředu (když to kanál dovoluje)"
     }
   },
   "icons": {

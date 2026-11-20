@@ -1,7 +1,7 @@
 # YouTube Mini – vlevo dole
 
 Minimalistická Chrome extension (Manifest V3, vanilla JavaScript, **bez npm a bez buildu**).
-Přesouvá **původní** video z **YouTube**, **Kicku** (např. `kick.com/xqc`) nebo **Instagramu (Reels)** do nativního Picture-in-Picture okna, které je vidět při procházení jiných stránek i aplikací. Nevzniká další přehrávač a zvuk se neduplikuje.
+Přesouvá **původní** video z **YouTube**, **Kicku** (např. `kick.com/xqc`), **Twitche** (např. `twitch.tv/shroud`) nebo **Instagramu (Reels)** do nativního Picture-in-Picture okna, které je vidět při procházení jiných stránek i aplikací. Nevzniká další přehrávač a zvuk se neduplikuje.
 
 ## Instalace
 
@@ -13,10 +13,20 @@ Přesouvá **původní** video z **YouTube**, **Kicku** (např. `kick.com/xqc`) 
 
 ## Použití
 
-1. Otevři video na **youtube.com**, stream na **kick.com** nebo Reels na **instagram.com** a spusť ho.
+1. Otevři video na **youtube.com**, stream nebo VOD na **kick.com** či **twitch.tv** nebo Reels na **instagram.com** a spusť ho.
 2. Klikni na ikonu rozšíření v liště (nebo stiskni **Alt+Shift+P**).
 3. Video se zobrazí v plovoucím PiP okně; přepni na jakýkoliv web.
 4. Dalším kliknutím na ikonu ho můžeš vypnout; funguje i zavírací tlačítko v PiP.
+
+### Pauza a přetáčení (Kick, Twitch)
+
+- **Pauza:** V PiP okně je tlačítko pauzy i u živého vysílání na Kicku a Twitchi (Chrome ho u živého vysílání jinak skrývá).
+- **Přetáčení:** Když kanál přetáčení dovoluje – VOD, nebo živé vysílání, ve kterém se dá vrátit zpět (aspoň o 2 minuty) – ukáže novější Chrome v PiP tlačítka ±10 s a posuvník. U živého vysílání bez možnosti vrátit se zpět (na Twitchi běžné) tlačítka nejsou.
+- **Klávesové zkratky:** *Pozastavit / pustit*, *Přetočit o 10 s zpět* a *Přetočit o 10 s dopředu* fungují na všech podporovaných webech, i když jsi v jiné záložce. Chrome dovoluje rozšíření předvyplnit jen 4 zkratky, takže si je nastav v `chrome://extensions/shortcuts`. Pauzu ovládá i klávesa ⏯ na klávesnici.
+
+### Kick VOD po výpadku pokračuje, kde bylo
+
+Když se při sledování VOD na Kicku přehrávač kvůli výpadku spojení nebo chybě načte znovu, začal by od začátku. Rozšíření si průběžně pamatuje pozici a video vrátí tam, kde bylo – i když stránku obnovíš (ve stejné kartě). Dokoukané video začne příště od začátku a odkaz s časem (`?t=…`) má přednost.
 
 ### Podpora pro Reels a Shorts (scrollování)
 
@@ -29,7 +39,7 @@ Při sledování Instagram Reels nebo YouTube Shorts v plovoucím okně můžeš
 
 ### Automaticky při přepnutí záložky
 
-Když na YouTube, Kicku nebo Instagramu hraje video a přepneš na jinou záložku, video se samo otevře v PiP. Po návratu na kartu s videem se PiP zase zavře. PiP zapnuté ručně ikonou nebo zkratkou zůstane otevřené.
+Když na YouTube, Kicku, Twitchi nebo Instagramu hraje video a přepneš na jinou záložku, video se samo otevře v PiP. Po návratu na kartu s videem se PiP zase zavře. PiP zapnuté ručně ikonou nebo zkratkou zůstane otevřené.
 
 - Funguje v novějším Chromu (přibližně 134+), který podporuje automatické PiP přes Media Session API. Ve starším zůstává jen ruční ovládání.
 - Chrome se může poprvé zeptat, jestli automatický obraz v obraze pro daný web povolit. Nastavení najdeš v *Nastavení stránek → Další oprávnění → Automatický obraz v obraze*.
@@ -56,6 +66,8 @@ youtube-mini-left/
 ├── background.js       # toolbar, správa záložek, PiP zkratky a pozice
 ├── pip.js              # skutečný video element -> PiP
 ├── autopip.js          # automatické PiP a ovládání Reels / Shorts v PiP
+├── media-controls.js   # pauza a přetáčení v PiP (Kick, Twitch) a zkratky pro ně
+├── kick-vod.js         # Kick VOD po výpadku pokračuje, kde bylo
 ├── instagram-fix.js    # běh Instagramu na pozadí ve světě stránky (MAIN world)
 ├── assets/             # ikony
 └── README.md

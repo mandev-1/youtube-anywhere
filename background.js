@@ -1,5 +1,5 @@
 // Manifest V3 service worker.
-// Jeden skutečný <video> z YouTube, Kicku nebo Instagramu -> nativní Picture-in-Picture.
+// Jeden skutečný <video> z YouTube, Kicku, Twitche nebo Instagramu -> nativní Picture-in-Picture.
 // Žádné kopírování streamu ani druhé audio v jiné záložce.
 
 // Podporované weby: musí odpovídat host_permissions a content_scripts v manifestu.
@@ -8,12 +8,16 @@ const VIDEO_SITE_PATTERNS = [
   "https://m.youtube.com/*",
   "https://kick.com/*",
   "https://www.kick.com/*",
+  "https://www.twitch.tv/*",
+  "https://m.twitch.tv/*",
+  "https://twitch.tv/*",
   "https://www.instagram.com/*",
   "https://instagram.com/*"
 ];
-const VIDEO_SITE_URL = /^https:\/\/(?:(?:www\.|m\.)youtube\.com|(?:www\.)?kick\.com|(?:www\.)?instagram\.com)\//i;
+const VIDEO_SITE_URL = /^https:\/\/(?:(?:www\.|m\.)youtube\.com|(?:www\.)?kick\.com|(?:(?:www|m)\.)?twitch\.tv|(?:www\.)?instagram\.com)\//i;
 const PLACEMENT_MARGIN = 16;
 const PIP_SIZE = { width: 360, height: 220 };
+const SEEK_STEP = 10;
 
 // Je-li PiP okno dostupné přes chrome.windows, zkusíme jej posunout vlevo dolů.
 let placement = null;
@@ -26,7 +30,16 @@ chrome.action.onClicked.addListener((clickedTab) => {
 
 chrome.commands.onCommand.addListener((command) => {
   if (command === "next_video" || command === "prev_video") {
-    void handleNavigationCommand(command === "next_video" ? 1 : -1);
+    void sendToVideoTab({ type: "navigate-reel", direction: command === "next_video" ? 1 : -1 });
+  } else if (command === "play_pause") {
+    // Obslouží media-controls.js; přetáčí jen tam, kde to kanál dovoluje.
+    void sendToVideoTab({ type: "media-control", action: "toggle" });
+  } else if (command === "seek_backward" || command === "seek_forward") {
+    void sendToVideoTab({
+      type: "media-control",
+      action: "seek",
+      offset: command === "seek_forward" ? SEEK_STEP : -SEEK_STEP
+    });
   }
 });
 
@@ -71,7 +84,8 @@ chrome.windows.onCreated.addListener((newWindow) => {
   placement = null;
 });
 
-async function handleNavigationCommand(direction) {
+// Pošle zprávu kartě s videem: nejdřív té s PiP, pak aktivní, pak té, která hraje.
+async function sendToVideoTab(message) {
   try {
     let targetTabId = activePipTabId;
     if (targetTabId != null) {
@@ -98,13 +112,10 @@ async function handleNavigationCommand(direction) {
     }
 
     if (targetTabId != null) {
-      await chrome.tabs.sendMessage(targetTabId, {
-        type: "navigate-reel",
-        direction
-      }).catch(() => {});
+      await chrome.tabs.sendMessage(targetTabId, message).catch(() => {});
     }
   } catch (error) {
-    console.debug("YouTube Mini: navigace na reel se nezdařila:", error);
+    console.debug("YouTube Mini: příkaz pro kartu s videem se nezdařil:", error);
   }
 }
 
@@ -128,7 +139,7 @@ async function toggleFromAction(clickedTab) {
     }
 
     if (!target?.id) {
-      await showStatus("?", "Otevři video na YouTube, Kicku nebo Instagramu a spusť přehrávání.");
+      await showStatus("?", "Otevři video na YouTube, Kicku, Twitchi nebo Instagramu a spusť přehrávání.");
       return;
     }
 
@@ -168,7 +179,7 @@ async function toggleFromAction(clickedTab) {
   } catch (error) {
     placement = null;
     console.error("YouTube Mini:", error);
-    await showStatus("!", "PiP se nepodařilo spustit. Otevři video na YouTube, Kicku nebo Instagramu a klikni znovu.");
+    await showStatus("!", "PiP se nepodařilo spustit. Otevři video na YouTube, Kicku, Twitchi nebo Instagramu a klikni znovu.");
   }
 }
 

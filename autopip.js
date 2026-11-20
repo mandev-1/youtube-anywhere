@@ -1,12 +1,16 @@
-// Content script na YouTube, Kicku a Instagramu:
+// Content script na YouTube, Kicku, Twitchi a Instagramu:
 // 1. Automatické PiP při přepnutí na jinou záložku (přes Media Session enterpictureinpicture).
 // 2. Podpora pro Reels a Shorts – scrollování a přechod na další/předchozí video v PiP okně i na stránce.
+// Pauzu a přetáčení v PiP řeší media-controls.js.
 (() => {
   if (!("mediaSession" in navigator) || !document.pictureInPictureEnabled) return;
 
+  // Na Kicku a Twitchi není kam přeskočit: tlačítka další/předchozí by v PiP jen zabírala místo.
+  const HAS_VIDEO_FEED = !/(^|\.)(kick\.com|twitch\.tv)$/i.test(location.hostname);
+
   registerHandlers();
 
-  // YouTube, Kick i Instagram jsou SPA: při přehrání handler zaregistrujeme znovu.
+  // YouTube, Kick, Twitch i Instagram jsou SPA: při přehrání handler zaregistrujeme znovu.
   document.addEventListener("play", onPlay, true);
 
   // Události PiP bublají z <video>; synchronizují odznak na ikoně.
@@ -48,6 +52,7 @@
       navigator.mediaSession.setActionHandler("enterpictureinpicture", enterAutomatically);
       ok = true;
     } catch {}
+    if (!HAS_VIDEO_FEED) return ok;
     try {
       navigator.mediaSession.setActionHandler("nexttrack", () => {
         void navigateReel(1);
